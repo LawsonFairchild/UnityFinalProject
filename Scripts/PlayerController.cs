@@ -71,10 +71,11 @@ public class PlayerController : MonoBehaviour
     public bool FirstSlide;
     private RaycastHit ClosestHit;
     private float ShootTime;
-    private bool Paused;
+    public bool Paused;
     private RaycastHit UnRunableWall;
     public static bool TiltAllowed;
     public float GravityForce;
+    private Vector3 PrePauseVelocity;
 
     private void Start()
     {
@@ -90,6 +91,7 @@ public class PlayerController : MonoBehaviour
 
     private void Update()
     {
+        Pause();
         if (!Paused)
         {
             GravityConstantForce();
@@ -497,6 +499,16 @@ public class PlayerController : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.Escape))
         {
             Paused = !Paused;
+            if (Paused) {
+                PrePauseVelocity = PlayerRb.velocity;
+                PlayerRb.constraints = RigidbodyConstraints.FreezeAll;
+            }
+            else
+            {
+                PlayerRb.constraints = RigidbodyConstraints.None;
+                PlayerRb.constraints = RigidbodyConstraints.FreezeRotation;
+                PlayerRb.velocity = PrePauseVelocity;
+            }
         }
     }
 
