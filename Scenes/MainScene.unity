@@ -167,7 +167,7 @@ Rigidbody:
   m_UseGravity: 1
   m_IsKinematic: 0
   m_Interpolate: 1
-  m_Constraints: 0
+  m_Constraints: 80
   m_CollisionDetection: 1
 --- !u!4 &64480131
 Transform:
@@ -259,28 +259,29 @@ MonoBehaviour:
   Player: {fileID: 64480129}
   MagicBall: {fileID: 519742222}
   PlayerCamera: {fileID: 963194227}
-  GroundedPlayerAccel: 300
-  AirPlayerAccel: 300
-  JumpHeight: 6
-  DragForce: 5
-  WallDrag: 1.5
-  WallKickForce: 7.5
+  GroundedPlayerAccel: 320
+  AirPlayerAccel: 200
+  JumpHeight: 7.5
+  DragForce: 4
+  WallDrag: 2
+  WallKickForce: 6
   WallMaxSpeed: 15
   AirMaxSpeed: 5
-  GroundMaxSpeed: 300
+  GroundMaxSpeed: 200
   LurchTimeAmount: 1
-  LurchForce: 2.5
-  WallHoldForce: 4
+  LurchForce: 3
+  WallHoldForce: 10
   Crouching: 0
-  SlideForce: 0
-  SlideFriction: 0
-  MinSlideSpeed: 0
+  SlideForce: 20
+  SlideFriction: 0.65
+  MinSlideSpeed: 10
   SlideTimer: 0
   IsSliding: 0
   TimeGroundedOrOnWall: 0
   FirstSlide: 0
+  MinSlideTime: 2
   Paused: 0
-  GravityForce: 0
+  GravityForce: 75
 --- !u!1 &99244410
 GameObject:
   m_ObjectHideFlags: 0
@@ -1658,7 +1659,7 @@ Rigidbody:
   m_IsKinematic: 0
   m_Interpolate: 0
   m_Constraints: 0
-  m_CollisionDetection: 0
+  m_CollisionDetection: 1
 --- !u!1 &526941895
 GameObject:
   m_ObjectHideFlags: 0
@@ -3766,7 +3767,7 @@ MeshRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1330361239}
-  m_Enabled: 1
+  m_Enabled: 0
   m_CastShadows: 1
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
@@ -5713,7 +5714,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0cd44c1031e13a943bb63640046fad76, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_UiScaleMode: 0
+  m_UiScaleMode: 1
   m_ReferencePixelsPerUnit: 100
   m_ScaleFactor: 1
   m_ReferenceResolution: {x: 800, y: 600}

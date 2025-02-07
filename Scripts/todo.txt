@@ -1,0 +1,7 @@
+Done        Fix colliders for enemies (possibly magic ball)
+1/2 done    Fix slide make add values for slides
+Done        Fix the build thing
+            make the look around stop when paused (optional)
+            Make hud
+            get playtester input
+            fix stuff

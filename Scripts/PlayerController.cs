@@ -69,6 +69,7 @@ public class PlayerController : MonoBehaviour
     private bool SlideFlipper;
     public float TimeGroundedOrOnWall;
     public bool FirstSlide;
+    public float MinSlideTime;
     private RaycastHit ClosestHit;
     private float ShootTime;
     public bool Paused;
@@ -400,7 +401,7 @@ public class PlayerController : MonoBehaviour
 
     private void Slide()
     {
-        if (IsSliding)
+        if (IsSliding) 
         {
             if (!SlideFlipper)
             {
