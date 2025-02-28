@@ -60,16 +60,6 @@ public class PlayerController : MonoBehaviour
     private float WallRunTimer;
     private RaycastHit WallHit;
     public float WallHoldForce;
-    public bool Crouching;
-    public float SlideForce;
-    public float SlideFriction;
-    public float MinSlideSpeed;
-    public float SlideTimer;
-    public bool IsSliding;
-    private bool SlideFlipper;
-    public float TimeGroundedOrOnWall;
-    public bool FirstSlide;
-    public float MinSlideTime;
     private RaycastHit ClosestHit;
     private float ShootTime;
     public bool Paused;
@@ -77,6 +67,13 @@ public class PlayerController : MonoBehaviour
     public static bool TiltAllowed;
     public float GravityForce;
     private Vector3 PrePauseVelocity;
+    private float DashTimer;
+    public float DashReset;
+    public float DashLength;
+    public float DashMultiplier;
+    private Vector3 DashDirection;
+    private float VelocityTempVar;
+    private bool IsDashing;
 
     private void Start()
     {
@@ -95,6 +92,7 @@ public class PlayerController : MonoBehaviour
         Pause();
         if (!Paused)
         {
+            Dash();
             GravityConstantForce();
             CheckLastWall();
             ResetGame();
@@ -102,7 +100,8 @@ public class PlayerController : MonoBehaviour
             MovePlayer();
             MyInput();
             Grounded = CheckIfGrounded();
-            if (Grounded) {
+            if (Grounded)
+            {
                 Physics.Raycast(Orientation.position, -Orientation.up, out LastWallHit, 10);
                 Physics.Raycast(Orientation.position, -Orientation.up, out UnRunableWall, 10);
             }
@@ -115,20 +114,7 @@ public class PlayerController : MonoBehaviour
             WallJump();
             DetirmineIfLurchAllowed();
             Lurch();
-            Crouch();
             TimerMaxes();
-            if ((TouchingWall || Grounded) && !Crouching && !FirstSlide)
-            {
-                TimeGroundedOrOnWall += Time.deltaTime;
-                if (TimeGroundedOrOnWall > .5)
-                {
-                    FirstSlide = true;
-                }
-            }
-            else if (TimeGroundedOrOnWall != 0)
-            {
-                TimeGroundedOrOnWall = 0;
-            }
             CheckIfCameraShouldTilt();
         }
     }
@@ -199,25 +185,22 @@ public class PlayerController : MonoBehaviour
 
     private void MovePlayer()
     {
-        if (!IsSliding)
+        if (Grounded)
         {
-            if (Grounded)
-            {
-                PlayerAccel = GroundedPlayerAccel;
-            }
-            else
-            {
-                PlayerAccel = AirPlayerAccel;
-            }
-            MoveDirection = Orientation.forward * VerticalInput + Orientation.right * HorizontalInput;
-            if ((PlayerRb.velocity.magnitude < MaxSpeed) && (Grounded || TouchingWall))
-            {
-                PlayerRb.AddForce(MoveDirection.normalized * PlayerAccel * 10f * Time.deltaTime, ForceMode.Force);
-            }
-            else if (PlayerRb.velocity.magnitude < AirMaxSpeed)
-            {
-                PlayerRb.AddForce(MoveDirection.normalized * PlayerAccel * 10f * Time.deltaTime, ForceMode.Force);
-            }
+            PlayerAccel = GroundedPlayerAccel;
+        }
+        else
+        {
+            PlayerAccel = AirPlayerAccel;
+        }
+        MoveDirection = Orientation.forward * VerticalInput + Orientation.right * HorizontalInput;
+        if ((PlayerRb.velocity.magnitude < MaxSpeed) && (Grounded || TouchingWall))
+        {
+            PlayerRb.AddForce(MoveDirection.normalized * PlayerAccel * 10f * Time.deltaTime, ForceMode.Force);
+        }
+        else if (PlayerRb.velocity.magnitude < AirMaxSpeed)
+        {
+            PlayerRb.AddForce(MoveDirection.normalized * PlayerAccel * 10f * Time.deltaTime, ForceMode.Force);
         }
     }
 
@@ -225,16 +208,8 @@ public class PlayerController : MonoBehaviour
     {
         if (Grounded && Input.GetKeyDown(KeyCode.Space))
         {
-            if (Crouching)
-            {
-                Crouching = false;
-            }
             Timer = 0;
             PlayerRb.velocity = new Vector3(PlayerRb.velocity.x, JumpHeight, PlayerRb.velocity.z);
-        }
-        if (IsSliding)
-        {
-            PlayerRb.drag = SlideFriction;
         }
         else if (Grounded)
         {
@@ -366,59 +341,24 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    private void Crouch()
+    private void Dash()
     {
-        SlideTimer += Time.deltaTime;
-        if (Input.GetKeyDown(KeyCode.LeftShift))
+        if (Input.GetKeyDown(KeyCode.LeftShift) && DashTimer > DashReset)
         {
-            SlideTimer = 0;
-            SlideFlipper = false;
-            Crouching = !Crouching;
+            DashDirection = PlayerCamera.transform.forward;
+            VelocityTempVar = PlayerRb.velocity.magnitude;
+            DashTimer = 0;
+            PlayerRb.velocity = DashDirection * DashMultiplier;
+            IsDashing = true;
         }
-        if (SlideTimer > 2 && IsSliding)
+        DashTimer += Time.deltaTime;
+        if (DashTimer > DashLength && IsDashing)
         {
-            IsSliding = false;
-        }
-        else if (!Crouching)
-        {
-            IsSliding = false;
-        }
-        if (Crouching && PlayerRb.velocity.magnitude > MinSlideSpeed && Grounded)
-        {
-            Slide();
-        }
-        if (Crouching)
-        {
-            Player.transform.localScale = new Vector3(1, .5f, 1);
-            GroundMaxSpeed = 1;
-        }
-        else
-        {
-            Player.transform.localScale = new Vector3(1, 1, 1);
-            GroundMaxSpeed = 250;
+            IsDashing = false;
+            PlayerRb.velocity = PlayerCamera.transform.forward.normalized * VelocityTempVar;
         }
     }
 
-    private void Slide()
-    {
-        if (IsSliding) 
-        {
-            if (!SlideFlipper)
-            {
-                if (FirstSlide)
-                {
-                    PlayerRb.velocity += PlayerRb.velocity.normalized * SlideForce;
-                    FirstSlide = false;
-                }
-                SlideFlipper = true;
-            }
-
-        }
-        else
-        {
-            IsSliding = true;
-        }
-    }
 
     private void ResetWallRunTimer()
     {
@@ -467,21 +407,13 @@ public class PlayerController : MonoBehaviour
         {
             Timer = 10;
         }
-        if (SlideTimer > 10)
-        {
-            SlideTimer = 10;
-        }
         if (WallRunTimer > 10)
         {
             WallRunTimer = 10;
         }
-        if (SlideTimer > 10)
+        if (DashTimer > 10)
         {
-            SlideTimer = 10;
-        }
-        if (TimeGroundedOrOnWall > 10)
-        {
-            TimeGroundedOrOnWall = 10;
+            DashTimer = 10;
         }
 
     }
@@ -500,7 +432,8 @@ public class PlayerController : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.Escape))
         {
             Paused = !Paused;
-            if (Paused) {
+            if (Paused)
+            {
                 PrePauseVelocity = PlayerRb.velocity;
                 PlayerRb.constraints = RigidbodyConstraints.FreezeAll;
             }
@@ -521,16 +454,21 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    private void GravityConstantForce() {
-        if (!Grounded) {
+    private void GravityConstantForce()
+    {
+        if (!Grounded)
+        {
             PlayerRb.AddForce(Vector3.down * GravityForce * Time.deltaTime, ForceMode.Force);
         }
     }
-    private void CheckIfCameraShouldTilt() {
-        if (CheckIfTouchingWall() != 0 && !TiltAllowed) {
+    private void CheckIfCameraShouldTilt()
+    {
+        if (CheckIfTouchingWall() != 0 && !TiltAllowed)
+        {
             TiltAllowed = true;
         }
-        else if (TiltAllowed && CheckIfTouchingWall() == 0) {
+        else if (TiltAllowed && CheckIfTouchingWall() == 0)
+        {
             TiltAllowed = false;
         }
     }

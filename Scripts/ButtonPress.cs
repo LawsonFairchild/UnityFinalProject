@@ -9,6 +9,6 @@ public class ButtonPress : MonoBehaviour
     }
     public void OnClick()
     {
-            Application.Quit();
+        Application.Quit();
     }
 }

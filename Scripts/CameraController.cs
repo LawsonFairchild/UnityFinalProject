@@ -1,7 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
 using System.IO;
-using System.Diagnostics;
 
 
 /// <summary>
@@ -38,6 +37,7 @@ public class CameraController : MonoBehaviour
     private float TiltAngle;
     private float sensX;
     private float sensY;
+    private bool YInverted;
     private bool TouchingLeft;
     private bool TouchingRight;
     private float PlayerWidth;
@@ -45,7 +45,11 @@ public class CameraController : MonoBehaviour
     private float yRotation;
     private float PlayerHeight;
     public bool Grounded;
+    private bool Paused;
     public GameObject MenuGameObject;
+    public Slider XSenseSlider;
+    public Slider YSenseSlider;
+    public Toggle YInvertToggle;
 
 
     private void Start()
@@ -65,22 +69,27 @@ public class CameraController : MonoBehaviour
 
     private void Update()
     {
-        float mouseX = Input.GetAxisRaw("Mouse X") * Time.deltaTime * sensX;
-        float mouseY = Input.GetAxisRaw("Mouse Y") * Time.deltaTime * sensY;
+        PauseAndUnpause();
+        if (!Paused)
+        {
+            float mouseX = Input.GetAxisRaw("Mouse X") * Time.deltaTime * sensX;
+            float mouseY = Input.GetAxisRaw("Mouse Y") * Time.deltaTime * sensY;
 
-        yRotation += mouseX;
-        xRotation -= mouseY;
-        xRotation = Mathf.Clamp(xRotation, -90f, 90f);
+            yRotation += mouseX;
+            xRotation -= mouseY;
+            xRotation = Mathf.Clamp(xRotation, -90f, 90f);
 
-        transform.rotation = UnityEngine.Quaternion.Euler(xRotation, yRotation, Orientation.rotation.z);
-        Orientation.rotation = UnityEngine.Quaternion.Euler(0, yRotation, 0);
+            transform.rotation = UnityEngine.Quaternion.Euler(xRotation, yRotation, Orientation.rotation.z);
+            Orientation.rotation = UnityEngine.Quaternion.Euler(0, yRotation, 0);
 
-        TouchingLeft = TouchingWallLeft();
-        TouchingRight = TouchingWallRight();
+            TouchingLeft = TouchingWallLeft();
+            TouchingRight = TouchingWallRight();
 
-        Grounded = Physics.Raycast(Orientation.position, -Orientation.up, PlayerHeight, WhatIsGround);
-        Tilt();
-        OpenAndCloseMenu();
+            Grounded = Physics.Raycast(Orientation.position, -Orientation.up, PlayerHeight, WhatIsGround);
+            Tilt();
+        }
+            OpenAndCloseMenu();
+        
     }
 
     private bool TouchingWallLeft()
@@ -114,19 +123,58 @@ public class CameraController : MonoBehaviour
         }
     }
 
-    private void LoadSettings() {
-        string FilePath = Path.Combine(Application.streamingAssetsPath, "PlayerSettings.csv");
-        if (File.Exists(FilePath)) {
-            string SettingsFile = File.ReadAllText(FilePath);
-            string[] SettingsList = SettingsFile.Split(",");
-            sensX = float.Parse(SettingsList[1]);
-            sensY = float.Parse(SettingsList[3]);
-            if (bool.Parse(SettingsList[5])) {
+    private void LoadSettings()
+    {
+        string FilePath = Path.Combine(Application.streamingAssetsPath, "PlayerSettings.json");
+        if (File.Exists(FilePath))
+        {
+            string SettingsString = File.ReadAllText(FilePath);
+            PlayerSettings settings = JsonUtility.FromJson<PlayerSettings>(SettingsString);
+            sensX = settings.sensX;
+            sensY = settings.sensY;
+            YInverted = settings.YInverted;
+            if (YInverted)
+            {
                 sensY = -sensY;
             }
+
+            YInvertToggle.isOn = YInverted;
+            XSenseSlider.value = sensX;
+            if (YInverted)
+            {
+                YSenseSlider.value = -sensY;
+            }
+            else
+            {
+                YSenseSlider.value = sensY;
+            }
         }
-        else {
+        else
+        {
             UnityEngine.Debug.Log("It's not working!!!!!!!");
+        }
+    }
+
+    private void SaveSettings()
+    {
+        string FilePath = Path.Combine(Application.streamingAssetsPath, "PlayerSettings.json");
+        Debug.Log(XSenseSlider.value + 4f);
+        PlayerSettings Settings = new()
+        {
+            sensX = XSenseSlider.value,
+            sensY = YSenseSlider.value,
+            YInverted = YInvertToggle.isOn
+        };
+
+        string SettingsString = JsonUtility.ToJson(Settings, true);
+        File.WriteAllText(FilePath, SettingsString);
+    }
+
+    private void PauseAndUnpause()
+    {
+        if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            Paused = !Paused;
         }
     }
 
@@ -139,6 +187,7 @@ public class CameraController : MonoBehaviour
                 MenuGameObject.SetActive(false);
                 Cursor.lockState = CursorLockMode.Locked;
                 Cursor.visible = false;
+                SaveSettings();
                 LoadSettings();
             }
             else
@@ -149,4 +198,12 @@ public class CameraController : MonoBehaviour
             }
         }
     }
+}
+
+[System.Serializable]
+public class PlayerSettings
+{
+    public float sensX;
+    public float sensY;
+    public bool YInverted;
 }
