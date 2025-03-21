@@ -3,8 +3,12 @@ done        Fix slide make add values for slides
 Done        Make sliding a dash instead?
 Done        Fix the build thing
 Done        make the look around stop when paused (optional)
-Done maybe  Make hud
+Done        Make hud
 Done        Make the pause screen/settings screen
-            Animate the wand
-            get playtester input
-            fix stuff
+Done        Animate the wand
+Done        Fix Slidyness
+Done        Fix Friction
+            Make a level
+            Get playtester input
+            Set up rules
+            Talk to Mr. Storm 

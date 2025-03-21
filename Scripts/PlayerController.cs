@@ -2,6 +2,7 @@ using System;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 /// <summary>
 /// PlayerController.cs
@@ -74,7 +75,7 @@ public class PlayerController : MonoBehaviour
     private Vector3 DashDirection;
     private float VelocityTempVar;
     private bool IsDashing;
-
+    public GameObject UIImage;
     private void Start()
     {
         PlayerRb = GetComponent<Rigidbody>();
@@ -99,6 +100,9 @@ public class PlayerController : MonoBehaviour
             ResetWallRunTimer();
             MovePlayer();
             MyInput();
+            if (!Grounded && CheckIfGrounded()){
+                PlayerRb.AddForce(PlayerRb.velocity.normalized * 1.1f);
+            }
             Grounded = CheckIfGrounded();
             if (Grounded)
             {
@@ -145,7 +149,7 @@ public class PlayerController : MonoBehaviour
         }
         else
         {
-            PlayerMaterial.dynamicFriction = 1;
+            PlayerMaterial.dynamicFriction = 0;
             MaxSpeed = GroundMaxSpeed;
         }
     }
@@ -426,7 +430,6 @@ public class PlayerController : MonoBehaviour
             MagicBallShot.GetComponent<Rigidbody>().velocity = MagicBallShot.transform.forward * 100;
         }
     }
-
     void Pause()
     {
         if (Input.GetKeyDown(KeyCode.Escape))
@@ -436,12 +439,14 @@ public class PlayerController : MonoBehaviour
             {
                 PrePauseVelocity = PlayerRb.velocity;
                 PlayerRb.constraints = RigidbodyConstraints.FreezeAll;
+                UIImage.SetActive(false);
             }
             else
             {
                 PlayerRb.constraints = RigidbodyConstraints.None;
                 PlayerRb.constraints = RigidbodyConstraints.FreezeRotation;
                 PlayerRb.velocity = PrePauseVelocity;
+                UIImage.SetActive(true);
             }
         }
     }
