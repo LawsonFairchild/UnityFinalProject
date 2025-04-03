@@ -8,6 +8,7 @@ Done        Make the pause screen/settings screen
 Done        Animate the wand
 Done        Fix Slidyness
 Done        Fix Friction
+Done        Make Tilt Smoother
             Animations
             Make a level
             Get playtester input

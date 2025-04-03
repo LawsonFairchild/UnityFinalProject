@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using System.IO;
 using Unity.VisualScripting;
+using Unity.Mathematics;
 
 
 /// <summary>
@@ -35,7 +36,7 @@ public class CameraController : MonoBehaviour
     /// The transform of the center dot
     /// </summary>
     public RectTransform rectTransform;
-    private float TiltAngle;
+    public float DesiredTiltAngle;
     private float sensX;
     private float sensY;
     private bool XYSynced;
@@ -54,13 +55,13 @@ public class CameraController : MonoBehaviour
     public Toggle YInvertToggle;
     public Toggle XYSyncToggle;
     private bool PrevToggle;
-
+    public float CurrTilt;
+    public float TiltSpeed;
 
     private void Start()
     {
         LoadSettings();
         PrevToggle = true;
-        TiltAngle = 5;
         PlayerWidth = .8f;
         PlayerHeight = 1.3f;
 
@@ -76,7 +77,7 @@ public class CameraController : MonoBehaviour
         XYSynced = XYSyncToggle.isOn;
         if (PrevToggle != XYSynced)
         {
-            if (XYSynced  && YSenseSlider.enabled)
+            if (XYSynced && YSenseSlider.enabled)
             {
                 YSenseSlider.enabled = false;
             }
@@ -135,16 +136,26 @@ public class CameraController : MonoBehaviour
     {
         if (!Grounded && PlayerController.TiltAllowed)
         {
-            if (TouchingLeft)
+            if (TouchingLeft && CurrTilt > -DesiredTiltAngle)
             {
-                cam.transform.localRotation = UnityEngine.Quaternion.Euler(cam.transform.localRotation.eulerAngles.x, cam.transform.localRotation.eulerAngles.y, -TiltAngle);
+                CurrTilt -= Time.deltaTime * TiltSpeed;
             }
-            else if (TouchingRight)
+            else if (TouchingRight && CurrTilt < DesiredTiltAngle)
             {
-                cam.transform.localRotation = UnityEngine.Quaternion.Euler(cam.transform.localRotation.eulerAngles.x, cam.transform.localRotation.eulerAngles.y, TiltAngle);
+                CurrTilt += Time.deltaTime * TiltSpeed;
             }
         }
-    }
+        else if (CurrTilt > 5) {
+            CurrTilt -= Time.deltaTime * TiltSpeed;
+        }
+        else if (CurrTilt < -5) {
+            CurrTilt += Time.deltaTime * TiltSpeed;
+        }
+        else {
+            CurrTilt = 0;
+        }
+        cam.transform.localRotation = UnityEngine.Quaternion.Euler(cam.transform.localRotation.eulerAngles.x, cam.transform.localRotation.eulerAngles.y, CurrTilt);    }
+
 
     private void LoadSettings()
     {
