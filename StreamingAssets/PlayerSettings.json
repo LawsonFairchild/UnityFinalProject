@@ -1,5 +1,6 @@
 {
-    "sensX": 237.55601501464845,
-    "sensY": 237.55606079101563,
-    "YInverted": false
+    "sensX": 300.0,
+    "sensY": 300.0,
+    "YInverted": false,
+    "XYSynced": false
 }

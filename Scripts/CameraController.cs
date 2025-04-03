@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using System.IO;
+using Unity.VisualScripting;
 
 
 /// <summary>
@@ -37,6 +38,7 @@ public class CameraController : MonoBehaviour
     private float TiltAngle;
     private float sensX;
     private float sensY;
+    private bool XYSynced;
     private bool YInverted;
     private bool TouchingLeft;
     private bool TouchingRight;
@@ -50,12 +52,14 @@ public class CameraController : MonoBehaviour
     public Slider XSenseSlider;
     public Slider YSenseSlider;
     public Toggle YInvertToggle;
+    public Toggle XYSyncToggle;
+    private bool PrevToggle;
 
 
     private void Start()
     {
         LoadSettings();
-
+        PrevToggle = true;
         TiltAngle = 5;
         PlayerWidth = .8f;
         PlayerHeight = 1.3f;
@@ -69,6 +73,25 @@ public class CameraController : MonoBehaviour
 
     private void Update()
     {
+        XYSynced = XYSyncToggle.isOn;
+        if (PrevToggle != XYSynced)
+        {
+            if (XYSynced  && YSenseSlider.enabled)
+            {
+                YSenseSlider.enabled = false;
+            }
+            else if (!YSenseSlider.enabled)
+            {
+                YSenseSlider.enabled = true;
+            }
+        }
+
+        if (XYSynced)
+        {
+            YSenseSlider.value = XSenseSlider.value;
+        }
+        PrevToggle = XYSynced;
+
         PauseAndUnpause();
         if (!Paused)
         {
@@ -88,8 +111,8 @@ public class CameraController : MonoBehaviour
             Grounded = Physics.Raycast(Orientation.position, -Orientation.up, PlayerHeight, WhatIsGround);
             Tilt();
         }
-            OpenAndCloseMenu();
-        
+
+        OpenAndCloseMenu();
     }
 
     private bool TouchingWallLeft()
@@ -133,6 +156,8 @@ public class CameraController : MonoBehaviour
             sensX = settings.sensX;
             sensY = settings.sensY;
             YInverted = settings.YInverted;
+            XYSynced = settings.XYSynced;
+
             if (YInverted)
             {
                 sensY = -sensY;
@@ -148,6 +173,7 @@ public class CameraController : MonoBehaviour
             {
                 YSenseSlider.value = sensY;
             }
+
         }
         else
         {
@@ -206,4 +232,5 @@ public class PlayerSettings
     public float sensX;
     public float sensY;
     public bool YInverted;
+    public bool XYSynced;
 }
