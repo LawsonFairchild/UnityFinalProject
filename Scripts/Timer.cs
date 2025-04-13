@@ -43,7 +43,8 @@ public class Timer : MonoBehaviour
         timeGoing = false;
         foreach (Transform Enemy in ListOfEnemies)
         {
-            if (Enemy.gameObject.activeInHierarchy)
+            //for every enemy if the enemy is still alive (layer 9) continue timing
+            if (Enemy.gameObject.layer == 7)
             {
                 timeGoing = true;
                 break;

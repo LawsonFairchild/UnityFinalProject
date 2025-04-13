@@ -5,12 +5,14 @@ Done        Fix the build thing
 Done        make the look around stop when paused (optional)
 Done        Make hud
 Done        Make the pause screen/settings screen
-Done        Animate the wand
+Done        Animate the magic ball
 Done        Fix Slidyness
 Done        Fix Friction
 Done        Make Tilt Smoother
+Done        XY Sync
             Animations
-            Make a level
+            Make levels
+            Make level selector
             Get playtester input
             Set up rules
             Talk to Mr. Storm 
