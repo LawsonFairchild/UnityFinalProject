@@ -10,7 +10,8 @@ Done        Fix Slidyness
 Done        Fix Friction
 Done        Make Tilt Smoother
 Done        XY Sync
-            Animations
+Done        Fix Sword
+Done        Animations
             Make levels
             Make level selector
             Get playtester input

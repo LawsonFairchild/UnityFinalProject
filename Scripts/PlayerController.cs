@@ -29,10 +29,9 @@ public class PlayerController : MonoBehaviour
     /// The gameobject that is the player
     /// </summary>
     public GameObject Player;
-    public GameObject MagicBall;
     public Camera PlayerCamera;
     private RaycastHit LastWallHit;
-    private float PlayerHeight;
+    public static float PlayerHeight;
     private float PlayerWidth;
     private float PlayerAccel;
     public float GroundedPlayerAccel;
@@ -62,7 +61,6 @@ public class PlayerController : MonoBehaviour
     private RaycastHit WallHit;
     public float WallHoldForce;
     private RaycastHit ClosestHit;
-    private float ShootTime;
     public bool Paused;
     private RaycastHit UnRunableWall;
     public static bool TiltAllowed;
@@ -82,7 +80,6 @@ public class PlayerController : MonoBehaviour
         PlayerRb.freezeRotation = true;
         PlayerHeight = 1.2f;
         PlayerWidth = .8f;
-        ShootTime = .5f;
         Paused = false;
         Physics.Raycast(Orientation.position, -Orientation.up, out LastWallHit, 10);
         Physics.Raycast(Orientation.position, -Orientation.up, out UnRunableWall, 10);
@@ -95,7 +92,6 @@ public class PlayerController : MonoBehaviour
         {
             Dash();
             GravityConstantForce();
-            CheckLastWall();
             ResetGame();
             ResetWallRunTimer();
             MovePlayer();
@@ -110,8 +106,6 @@ public class PlayerController : MonoBehaviour
                 Physics.Raycast(Orientation.position, -Orientation.up, out UnRunableWall, 10);
             }
             TouchingWall = CheckIfTouchingWall() != 0;
-            ShootTime += Time.deltaTime;
-            Shoot();
             WallSlide();
             Jump();
             DoubleJump();
@@ -157,7 +151,8 @@ public class PlayerController : MonoBehaviour
     {
         if (Input.GetKeyDown(KeyCode.R))
         {
-            SceneManager.LoadScene("MainScene");
+            Scene S = SceneManager.GetActiveScene();
+            SceneManager.LoadScene(S.name);
         }
     }
 
@@ -323,9 +318,9 @@ public class PlayerController : MonoBehaviour
 
     private void OnCollisionEnter(Collision collision)
     {
-        if (collision.gameObject.tag == "DEATH")
+        if (collision.gameObject.CompareTag("DEATH"))
         {
-            SceneManager.LoadScene("MainScene");
+            SceneManager.LoadScene(SceneManager.GetActiveScene().name);
         }
     }
 
@@ -359,7 +354,7 @@ public class PlayerController : MonoBehaviour
         if (DashTimer > DashLength && IsDashing)
         {
             IsDashing = false;
-            PlayerRb.velocity = PlayerCamera.transform.forward.normalized * VelocityTempVar;
+            PlayerRb.velocity = 1.2f * VelocityTempVar * PlayerCamera.transform.forward.normalized;
         }
     }
 
@@ -421,15 +416,6 @@ public class PlayerController : MonoBehaviour
         }
 
     }
-
-    private void Shoot()
-    {
-        if (Input.GetMouseButtonDown(0) && ShootTime > .5f)
-        {
-            GameObject MagicBallShot = Instantiate(MagicBall, PlayerCamera.transform.position + PlayerCamera.transform.forward, PlayerCamera.transform.rotation);
-            MagicBallShot.GetComponent<Rigidbody>().velocity = MagicBallShot.transform.forward * 100;
-        }
-    }
     void Pause()
     {
         if (Input.GetKeyDown(KeyCode.Escape))
@@ -448,14 +434,6 @@ public class PlayerController : MonoBehaviour
                 PlayerRb.velocity = PrePauseVelocity;
                 UIImage.SetActive(true);
             }
-        }
-    }
-
-    private void CheckLastWall()
-    {
-        if (TouchingWall && (CheckIfTouchingWall() == 0))
-        {
-
         }
     }
 

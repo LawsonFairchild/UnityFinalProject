@@ -27,10 +27,6 @@ public class CameraController : MonoBehaviour
     /// <summary>
     /// Image if a rectangle for the crosshair
     /// </summary>
-    public Image CenterDotImage;
-    /// <summary>
-    /// Main character first person camera
-    /// </summary>
     public Camera cam;
     /// <summary>
     /// The transform of the center dot
@@ -69,7 +65,6 @@ public class CameraController : MonoBehaviour
         Cursor.visible = false;
 
         rectTransform.anchoredPosition = UnityEngine.Vector2.zero;
-        rectTransform = CenterDotImage.GetComponent<RectTransform>();
     }
 
     private void Update()
@@ -195,7 +190,6 @@ public class CameraController : MonoBehaviour
     private void SaveSettings()
     {
         string FilePath = Path.Combine(Application.streamingAssetsPath, "PlayerSettings.json");
-        Debug.Log(XSenseSlider.value + 4f);
         PlayerSettings Settings = new()
         {
             sensX = XSenseSlider.value,

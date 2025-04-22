@@ -1,7 +1,12 @@
 using System;
 using System.Collections.Generic;
+using TMPro;
+using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+
 
 /// <summary>
 /// Timer.cs
@@ -27,32 +32,67 @@ public class Timer : MonoBehaviour
     public List<Transform> ListOfEnemies;
     private bool timeGoing;
     private float Clock;
+    public LayerMask Goal;
+    public Transform PlayerTransform;
+    public static float Level1Time;
+    public static float Level2Time;
+    public TextMeshProUGUI Level1TimeText;
+    public TextMeshProUGUI Level2TimeText;
 
     private void Start()
     {
-        foreach (Transform Enemy in Enemies)
+        if (SceneManager.GetActiveScene().name == "LevelSelector")
         {
-            ListOfEnemies.Add(Enemy);
+            Level1TimeText.text = "Time: " + Math.Round(Level1Time, 2);
+            Level2TimeText.text = "Time: " + Math.Round(Level2Time, 2);
         }
-        timeGoing = true;
+        else
+        {
+            foreach (Transform Enemy in Enemies)
+            {
+                ListOfEnemies.Add(Enemy);
+            }
+            timeGoing = true;
+        }
     }
 
     private void Update()
     {
-        TimerDisp.text = Math.Round(Clock, 2).ToString() + 's';
-        timeGoing = false;
-        foreach (Transform Enemy in ListOfEnemies)
+        if (SceneManager.GetActiveScene().name != "LevelSelector")
         {
-            //for every enemy if the enemy is still alive (layer 9) continue timing
-            if (Enemy.gameObject.layer == 7)
+            TimerDisp.text = Math.Round(Clock, 2).ToString() + 's';
+            timeGoing = false;
+            foreach (Transform Enemy in ListOfEnemies)
             {
-                timeGoing = true;
-                break;
+                //for every enemy if the enemy is still alive (layer 9) continue timing
+                if (Enemy.gameObject.layer == 7)
+                {
+                    timeGoing = true;
+                    break;
+                }
             }
+            if (timeGoing)
+            {
+                Clock += Time.deltaTime;
+            }
+            CheckIfTouchingGoal();
         }
-        if (timeGoing)
+    }
+
+    void CheckIfTouchingGoal()
+    {
+        if (!timeGoing && Physics.Raycast(PlayerTransform.position, Vector3.down, PlayerController.PlayerHeight, Goal))
         {
-            Clock += Time.deltaTime;
+            if (SceneManager.GetActiveScene().name == "Level1")
+            {
+                Level1Time = Clock;
+            }
+            else if (SceneManager.GetActiveScene().name == "Level2")
+            {
+                Level2Time = Clock;
+            }
+            Cursor.lockState = CursorLockMode.None;
+            SceneManager.LoadScene("LevelSelector");
         }
     }
 }

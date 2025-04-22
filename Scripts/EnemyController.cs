@@ -35,7 +35,6 @@ public class EnemyController : MonoBehaviour
         {
             Enemy.layer = 8;
             EnemyCollider.enabled = false;
-            Destroy(collision.gameObject);
             RigidbodyArray = Enemy.GetComponentsInChildren<Rigidbody>();
             GameObjectArray = Enemy.GetComponentsInChildren<Transform>();
             for (int i = 0; i < RigidbodyArray.Length; i++) {
