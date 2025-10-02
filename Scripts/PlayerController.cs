@@ -1,8 +1,15 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using Unity.Mathematics;
+using Unity.MLAgents.SideChannels;
+using Unity.VisualScripting;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+
+[RequireComponent(typeof(Rigidbody))]
 
 /// <summary>
 /// PlayerController.cs
@@ -66,14 +73,20 @@ public class PlayerController : MonoBehaviour
     public static bool TiltAllowed;
     public float GravityForce;
     private Vector3 PrePauseVelocity;
+    private bool DashAllowed;
     private float DashTimer;
     public float DashReset;
     public float DashLength;
+    public float autodashRange;
     public float DashMultiplier;
     private Vector3 DashDirection;
     private float VelocityTempVar;
     private bool IsDashing;
     public GameObject UIImage;
+    public GameObject EnemiesParent;
+    private Transform[] Enemies;
+    public Transform NearestEnemy;
+    public double NearestEnemyDist = 10000;
     private void Start()
     {
         PlayerRb = GetComponent<Rigidbody>();
@@ -83,6 +96,7 @@ public class PlayerController : MonoBehaviour
         Paused = false;
         Physics.Raycast(Orientation.position, -Orientation.up, out LastWallHit, 10);
         Physics.Raycast(Orientation.position, -Orientation.up, out UnRunableWall, 10);
+        Enemies = EnemiesParent.GetComponentsInChildren<Transform>();
     }
 
     private void Update()
@@ -90,13 +104,15 @@ public class PlayerController : MonoBehaviour
         Pause();
         if (!Paused)
         {
+            FindNearestEnemies();
             Dash();
             GravityConstantForce();
             ResetGame();
             ResetWallRunTimer();
             MovePlayer();
             MyInput();
-            if (!Grounded && CheckIfGrounded()){
+            if (!Grounded && CheckIfGrounded())
+            {
                 PlayerRb.AddForce(PlayerRb.velocity.normalized * 1.1f);
             }
             Grounded = CheckIfGrounded();
@@ -106,6 +122,10 @@ public class PlayerController : MonoBehaviour
                 Physics.Raycast(Orientation.position, -Orientation.up, out UnRunableWall, 10);
             }
             TouchingWall = CheckIfTouchingWall() != 0;
+            if (TouchingWall && !DashAllowed)
+            {
+                DashAllowed = true;
+            }
             WallSlide();
             Jump();
             DoubleJump();
@@ -114,6 +134,7 @@ public class PlayerController : MonoBehaviour
             Lurch();
             TimerMaxes();
             CheckIfCameraShouldTilt();
+            Enemies = EnemiesParent.GetComponentsInChildren<Transform>();
         }
     }
 
@@ -182,6 +203,20 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+    private void FindNearestEnemies()
+    {
+        NearestEnemyDist = 10000;
+        for (int enemyIndex = 0; enemyIndex < Enemies.Length; enemyIndex++)
+        {
+            double distBetweenPlayerAndEnemy = Vector3.Distance(PlayerRb.transform.position, Enemies[enemyIndex].transform.position);
+            if (distBetweenPlayerAndEnemy < NearestEnemyDist)
+            {
+                NearestEnemy = Enemies[enemyIndex];
+                NearestEnemyDist = distBetweenPlayerAndEnemy;
+            }
+        }
+    }
+
     private void MovePlayer()
     {
         if (Grounded)
@@ -225,6 +260,7 @@ public class PlayerController : MonoBehaviour
     {
         if (DoubleJumpAllowed && Input.GetKeyDown(KeyCode.Space))
         {
+            DashAllowed = true;
             Timer = 0;
             PlayerRb.velocity = new Vector3(PlayerRb.velocity.x, JumpHeight, PlayerRb.velocity.z);
             DoubleJumpAllowed = false;
@@ -342,11 +378,16 @@ public class PlayerController : MonoBehaviour
 
     private void Dash()
     {
-        if (Input.GetKeyDown(KeyCode.LeftShift) && DashTimer > DashReset)
+        if (Input.GetKeyDown(KeyCode.LeftShift) && DashAllowed && DashTimer > DashReset)
         {
+            if (NearestEnemyDist < autodashRange)
+            {
+                PlayerCamera.transform.LookAt(NearestEnemy);
+            }
             DashDirection = PlayerCamera.transform.forward;
             VelocityTempVar = PlayerRb.velocity.magnitude;
             DashTimer = 0;
+            DashAllowed = false;
             PlayerRb.velocity = DashDirection * DashMultiplier;
             IsDashing = true;
         }

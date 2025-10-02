@@ -1784,11 +1784,15 @@ MonoBehaviour:
   LurchForce: 3
   WallHoldForce: 10
   Paused: 0
-  GravityForce: 75
-  DashReset: 2.5
+  GravityForce: 100
+  DashReset: 1.5
   DashLength: 0.11
+  autodashRange: 15
   DashMultiplier: 100
   UIImage: {fileID: 1379751492}
+  EnemiesParent: {fileID: 1003483218}
+  NearestEnemy: {fileID: 0}
+  NearestEnemyDist: 10000
 --- !u!20 &373818645
 Camera:
   m_ObjectHideFlags: 0
