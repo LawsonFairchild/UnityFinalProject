@@ -38,7 +38,7 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 0}
-  m_IndirectSpecularColor: {r: 0.44657874, g: 0.49641275, b: 0.5748172, a: 1}
+  m_IndirectSpecularColor: {r: 0, g: 0, b: 0, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
@@ -1182,7 +1182,7 @@ GameObject:
   - component: {fileID: 258469267}
   - component: {fileID: 258469266}
   - component: {fileID: 258469265}
-  m_Layer: 11
+  m_Layer: 3
   m_Name: Floor (2)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1784,8 +1784,8 @@ MonoBehaviour:
   LurchForce: 3
   WallHoldForce: 10
   Paused: 0
-  GravityForce: 100
-  DashReset: 1.5
+  GravityForce: 125
+  DashReset: 0.5
   DashLength: 0.11
   autodashRange: 15
   DashMultiplier: 100
@@ -1883,7 +1883,7 @@ AudioSource:
   OutputAudioMixerGroup: {fileID: 0}
   m_audioClip: {fileID: 8300000, guid: a801113c63a1f8c478276be420a0c140, type: 3}
   m_PlayOnAwake: 1
-  m_Volume: 1
+  m_Volume: 0.3
   m_Pitch: 1
   Loop: 1
   Mute: 0

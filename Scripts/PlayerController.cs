@@ -52,7 +52,6 @@ public class PlayerController : MonoBehaviour
     public float GroundMaxSpeed;
     private bool Grounded;
     private bool TouchingWall;
-    private bool DoubleJumpAllowed;
     private Rigidbody PlayerRb;
     private float MaxSpeed;
     private float HorizontalInput;
@@ -73,7 +72,6 @@ public class PlayerController : MonoBehaviour
     public static bool TiltAllowed;
     public float GravityForce;
     private Vector3 PrePauseVelocity;
-    private bool DashAllowed;
     private float DashTimer;
     public float DashReset;
     public float DashLength;
@@ -82,6 +80,7 @@ public class PlayerController : MonoBehaviour
     private Vector3 DashDirection;
     private float VelocityTempVar;
     private bool IsDashing;
+    private int dashesAndJumpsLeft;
     public GameObject UIImage;
     public GameObject EnemiesParent;
     private Transform[] Enemies;
@@ -118,13 +117,14 @@ public class PlayerController : MonoBehaviour
             Grounded = CheckIfGrounded();
             if (Grounded)
             {
+                dashesAndJumpsLeft = 3;
                 Physics.Raycast(Orientation.position, -Orientation.up, out LastWallHit, 10);
                 Physics.Raycast(Orientation.position, -Orientation.up, out UnRunableWall, 10);
             }
             TouchingWall = CheckIfTouchingWall() != 0;
-            if (TouchingWall && !DashAllowed)
+            if (TouchingWall)
             {
-                DashAllowed = true;
+                dashesAndJumpsLeft = 3;
             }
             WallSlide();
             Jump();
@@ -158,7 +158,6 @@ public class PlayerController : MonoBehaviour
             {
                 PlayerRb.velocity = new Vector3(PlayerRb.velocity.x, -WallDrag, PlayerRb.velocity.z);
             }
-            DoubleJumpAllowed = true;
             MaxSpeed = WallMaxSpeed;
             PlayerRb.position = Vector3.MoveTowards(PlayerRb.position, WallHit.point, WallHoldForce * Time.deltaTime);
         }
@@ -195,7 +194,6 @@ public class PlayerController : MonoBehaviour
             Vector3 WallKickVector = WallKickDirection * WallKickForce;
             PlayerRb.velocity += WallKickVector;
             UnRunableWall = LastWallHit;
-            DoubleJumpAllowed = true;
         }
         else
         {
@@ -248,7 +246,6 @@ public class PlayerController : MonoBehaviour
         else if (Grounded)
         {
             PlayerRb.drag = DragForce;
-            DoubleJumpAllowed = true;
         }
         else
         {
@@ -258,12 +255,11 @@ public class PlayerController : MonoBehaviour
 
     private void DoubleJump()
     {
-        if (DoubleJumpAllowed && Input.GetKeyDown(KeyCode.Space))
+        if (dashesAndJumpsLeft > 0 && Input.GetKeyDown(KeyCode.Space))
         {
-            DashAllowed = true;
             Timer = 0;
             PlayerRb.velocity = new Vector3(PlayerRb.velocity.x, JumpHeight, PlayerRb.velocity.z);
-            DoubleJumpAllowed = false;
+            dashesAndJumpsLeft--;
         }
     }
 
@@ -378,7 +374,7 @@ public class PlayerController : MonoBehaviour
 
     private void Dash()
     {
-        if (Input.GetKeyDown(KeyCode.LeftShift) && DashAllowed && DashTimer > DashReset)
+        if (Input.GetKeyDown(KeyCode.LeftShift)&& DashTimer > DashReset)
         {
             if (NearestEnemyDist < autodashRange)
             {
@@ -387,9 +383,9 @@ public class PlayerController : MonoBehaviour
             DashDirection = PlayerCamera.transform.forward;
             VelocityTempVar = PlayerRb.velocity.magnitude;
             DashTimer = 0;
-            DashAllowed = false;
             PlayerRb.velocity = DashDirection * DashMultiplier;
             IsDashing = true;
+            dashesAndJumpsLeft--;
         }
         DashTimer += Time.deltaTime;
         if (DashTimer > DashLength && IsDashing)
