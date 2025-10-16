@@ -80,7 +80,8 @@ public class PlayerController : MonoBehaviour
     private Vector3 DashDirection;
     private float VelocityTempVar;
     private bool IsDashing;
-    private int dashesAndJumpsLeft;
+    private int DashesAndJumpsLeft;
+    public int NumActions;
     public GameObject UIImage;
     public GameObject EnemiesParent;
     private Transform[] Enemies;
@@ -117,14 +118,14 @@ public class PlayerController : MonoBehaviour
             Grounded = CheckIfGrounded();
             if (Grounded)
             {
-                dashesAndJumpsLeft = 3;
+                DashesAndJumpsLeft = NumActions;
                 Physics.Raycast(Orientation.position, -Orientation.up, out LastWallHit, 10);
                 Physics.Raycast(Orientation.position, -Orientation.up, out UnRunableWall, 10);
             }
             TouchingWall = CheckIfTouchingWall() != 0;
             if (TouchingWall)
             {
-                dashesAndJumpsLeft = 3;
+                DashesAndJumpsLeft = NumActions;
             }
             WallSlide();
             Jump();
@@ -255,11 +256,14 @@ public class PlayerController : MonoBehaviour
 
     private void DoubleJump()
     {
-        if (dashesAndJumpsLeft > 0 && Input.GetKeyDown(KeyCode.Space))
+        if (DashesAndJumpsLeft > 0 && Input.GetKeyDown(KeyCode.Space))
         {
             Timer = 0;
             PlayerRb.velocity = new Vector3(PlayerRb.velocity.x, JumpHeight, PlayerRb.velocity.z);
-            dashesAndJumpsLeft--;
+            if (!TouchingWall)
+            {
+                DashesAndJumpsLeft--;
+            }
         }
     }
 
@@ -374,24 +378,20 @@ public class PlayerController : MonoBehaviour
 
     private void Dash()
     {
-        if (Input.GetKeyDown(KeyCode.LeftShift)&& DashTimer > DashReset)
+        if (DashesAndJumpsLeft > 0 && Input.GetKeyDown(KeyCode.LeftShift) && DashTimer > DashReset)
         {
-            if (NearestEnemyDist < autodashRange)
-            {
-                PlayerCamera.transform.LookAt(NearestEnemy);
-            }
-            DashDirection = PlayerCamera.transform.forward;
+            DashDirection = (PlayerCamera.transform.forward * 1.5f + PlayerRb.velocity.normalized).normalized;
             VelocityTempVar = PlayerRb.velocity.magnitude;
             DashTimer = 0;
             PlayerRb.velocity = DashDirection * DashMultiplier;
             IsDashing = true;
-            dashesAndJumpsLeft--;
+            DashesAndJumpsLeft--;
         }
         DashTimer += Time.deltaTime;
         if (DashTimer > DashLength && IsDashing)
         {
             IsDashing = false;
-            PlayerRb.velocity = 1.2f * VelocityTempVar * PlayerCamera.transform.forward.normalized;
+            PlayerRb.velocity = 1.2f * VelocityTempVar * PlayerRb.velocity.normalized;
         }
     }
 
