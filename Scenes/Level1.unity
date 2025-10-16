@@ -1742,7 +1742,7 @@ Transform:
   m_GameObject: {fileID: 373818642}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 3.819985, y: -1.0450001, z: -7.4245615}
+  m_LocalPosition: {x: 3.819985, y: 40.1, z: -7.4245615}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -1773,12 +1773,13 @@ MonoBehaviour:
   PlayerCamera: {fileID: 232360185}
   GroundedPlayerAccel: 750
   AirPlayerAccel: 50
+  WallRunAccel: 300
   JumpHeight: 7.5
   DragForce: 10
   WallDrag: 2
   WallKickForce: 6
   WallMaxSpeed: 15
-  AirMaxSpeed: 200
+  AirMaxSpeed: 25
   GroundMaxSpeed: 200
   LurchTimeAmount: 1
   LurchForce: 3

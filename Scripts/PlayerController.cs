@@ -43,6 +43,7 @@ public class PlayerController : MonoBehaviour
     private float PlayerAccel;
     public float GroundedPlayerAccel;
     public float AirPlayerAccel;
+    public float WallRunAccel;
     public float JumpHeight;
     public float DragForce;
     public float WallDrag;
@@ -222,6 +223,10 @@ public class PlayerController : MonoBehaviour
         {
             PlayerAccel = GroundedPlayerAccel;
         }
+        else if (TouchingWall)
+        {
+            PlayerAccel = WallRunAccel;
+        }
         else
         {
             PlayerAccel = AirPlayerAccel;
@@ -231,7 +236,7 @@ public class PlayerController : MonoBehaviour
         {
             PlayerRb.AddForce(MoveDirection.normalized * PlayerAccel * 10f * Time.deltaTime, ForceMode.Force);
         }
-        else if (PlayerRb.velocity.magnitude < AirMaxSpeed)
+        else if (transform.InverseTransformDirection(PlayerRb.velocity).z < AirMaxSpeed && transform.InverseTransformDirection(PlayerRb.velocity).z > -AirMaxSpeed && !TouchingWall)
         {
             PlayerRb.AddForce(MoveDirection.normalized * PlayerAccel * 10f * Time.deltaTime, ForceMode.Force);
         }
@@ -391,7 +396,7 @@ public class PlayerController : MonoBehaviour
         if (DashTimer > DashLength && IsDashing)
         {
             IsDashing = false;
-            PlayerRb.velocity = 1.2f * VelocityTempVar * PlayerRb.velocity.normalized;
+            PlayerRb.velocity = 1.1f * VelocityTempVar * PlayerRb.velocity.normalized;
         }
     }
 
