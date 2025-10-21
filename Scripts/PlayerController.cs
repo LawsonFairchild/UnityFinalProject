@@ -73,21 +73,31 @@ public class PlayerController : MonoBehaviour
     public static bool TiltAllowed;
     public float GravityForce;
     private Vector3 PrePauseVelocity;
-    private float DashTimer;
-    public float DashReset;
-    public float DashLength;
+    private float PowerUseTimer;
+    public float PowerUseCooldown;
+    public float PowerUseDuration;
     public float autodashRange;
     public float DashMultiplier;
     private Vector3 DashDirection;
     private float VelocityTempVar;
+    private bool WasGroundedPrev;
     private bool IsDashing;
-    private int DashesAndJumpsLeft;
+    private int PowersLeft;
     public int NumActions;
     public GameObject UIImage;
     public GameObject EnemiesParent;
     private Transform[] Enemies;
     public Transform NearestEnemy;
     public double NearestEnemyDist = 10000;
+    private WallLocation DirectionTouchingWall;
+    private bool TouchingWallPrev;
+    private enum WallLocation
+    {
+        NotTouching,
+        Right,
+        Left,
+    }
+
     private void Start()
     {
         PlayerRb = GetComponent<Rigidbody>();
@@ -111,21 +121,22 @@ public class PlayerController : MonoBehaviour
             ResetWallRunTimer();
             MovePlayer();
             MyInput();
-            if (!Grounded && CheckIfGrounded())
+            if (!WasGroundedPrev && IsGrounded())
             {
                 PlayerRb.AddForce(PlayerRb.velocity.normalized * 1.1f);
             }
-            Grounded = CheckIfGrounded();
+            Grounded = IsGrounded();
             if (Grounded)
             {
-                DashesAndJumpsLeft = NumActions;
+                PowersLeft = NumActions;
                 Physics.Raycast(Orientation.position, -Orientation.up, out LastWallHit, 10);
                 Physics.Raycast(Orientation.position, -Orientation.up, out UnRunableWall, 10);
             }
-            TouchingWall = CheckIfTouchingWall() != 0;
+            TouchingWall = IsTouchingWall();
             if (TouchingWall)
             {
-                DashesAndJumpsLeft = NumActions;
+                DirectionTouchingWall = CheckLocationOfWall();
+                PowersLeft = NumActions;
             }
             WallSlide();
             Jump();
@@ -135,6 +146,8 @@ public class PlayerController : MonoBehaviour
             Lurch();
             TimerMaxes();
             CheckIfCameraShouldTilt();
+            WasGroundedPrev = Grounded;
+            TouchingWallPrev = TouchingWall;
         }
     }
 
@@ -182,11 +195,11 @@ public class PlayerController : MonoBehaviour
         {
             WallHoldForce = 0f;
             Timer = 0;
-            if (CheckIfTouchingWall() == 1)
+            if (DirectionTouchingWall == WallLocation.Right)
             {
                 WallKickDirection = -Orientation.right * .9f - WallHit.point + Orientation.forward * .1f;
             }
-            else if (CheckIfTouchingWall() == 2)
+            else if (DirectionTouchingWall == WallLocation.Left)
             {
                 WallKickDirection = Orientation.right * .9f - WallHit.point + Orientation.forward * .1f;
             }
@@ -259,23 +272,34 @@ public class PlayerController : MonoBehaviour
 
     private void DoubleJump()
     {
-        if (DashesAndJumpsLeft > 0 && Input.GetKeyDown(KeyCode.Space))
+        if (PowersLeft > 0 && Input.GetKeyDown(KeyCode.Space))
         {
             Timer = 0;
             PlayerRb.velocity = new Vector3(PlayerRb.velocity.x, JumpHeight, PlayerRb.velocity.z);
             if (!TouchingWall)
             {
-                DashesAndJumpsLeft--;
+                PowersLeft--;
             }
         }
     }
 
-    private bool CheckIfGrounded()
+    private bool IsGrounded()
     {
         return Physics.Raycast(transform.position, Vector3.down, PlayerHeight, WhatIsGround);
     }
 
-    private int CheckIfTouchingWall()
+    private bool IsTouchingWall()
+    {
+        bool RayRight = Physics.Raycast(Orientation.position, Orientation.right, out WallHit, PlayerWidth, WhatIsGround);
+        bool RayRightForward = Physics.Raycast(Orientation.position, Orientation.right + Orientation.forward, out WallHit, PlayerWidth, WhatIsGround);
+        bool RayRightBack = Physics.Raycast(Orientation.position, Orientation.right - Orientation.forward, out WallHit, PlayerWidth, WhatIsGround);
+        bool RayLeft = Physics.Raycast(Orientation.position, -Orientation.right, out WallHit, PlayerWidth, WhatIsGround);
+        bool RayLeftForward = Physics.Raycast(Orientation.position, -Orientation.right + Orientation.forward, out WallHit, PlayerWidth, WhatIsGround);
+        bool RayLeftBack = Physics.Raycast(Orientation.position, -Orientation.right - Orientation.forward, out WallHit, PlayerWidth, WhatIsGround);
+        return RayRight || RayRightForward || RayRightBack || RayLeft || RayLeftForward || RayLeftBack;
+    }
+
+    private WallLocation CheckLocationOfWall()
     {
         bool RayRight = Physics.Raycast(Orientation.position, Orientation.right, out WallHit, PlayerWidth, WhatIsGround);
         ClosestHit = WallHit;
@@ -323,11 +347,11 @@ public class PlayerController : MonoBehaviour
             }
             if (ClosestHit.collider.name == UnRunableWall.collider.name)
             {
-                return 0;
+                return WallLocation.Left;
             }
             else
             {
-                return 1;
+                return WallLocation.Right;
             }
         }
         else if (RayLeft || RayLeftForward || RayLeftBack)
@@ -338,11 +362,11 @@ public class PlayerController : MonoBehaviour
             }
             if (ClosestHit.collider.name == UnRunableWall.collider.name)
             {
-                return 0;
+                return WallLocation.NotTouching;
             }
             else
             {
-                return 2;
+                return WallLocation.Left;
             }
         }
         else
@@ -381,17 +405,17 @@ public class PlayerController : MonoBehaviour
 
     private void Dash()
     {
-        if (DashesAndJumpsLeft > 0 && Input.GetKeyDown(KeyCode.LeftShift) && DashTimer > DashReset)
+        if (PowersLeft > 0 && Input.GetKeyDown(KeyCode.LeftShift) && PowerUseTimer > PowerUseCooldown)
         {
             DashDirection = (PlayerCamera.transform.forward * 1.5f + PlayerRb.velocity.normalized).normalized;
             VelocityTempVar = PlayerRb.velocity.magnitude;
-            DashTimer = 0;
+            PowerUseTimer = 0;
             PlayerRb.velocity = DashDirection * DashMultiplier;
             IsDashing = true;
-            DashesAndJumpsLeft--;
+            PowersLeft--;
         }
-        DashTimer += Time.deltaTime;
-        if (DashTimer > DashLength && IsDashing)
+        PowerUseTimer += Time.deltaTime;
+        if (PowerUseTimer > PowerUseDuration && IsDashing)
         {
             IsDashing = false;
             PlayerRb.velocity = 1.1f * VelocityTempVar * PlayerRb.velocity.normalized;
@@ -401,7 +425,7 @@ public class PlayerController : MonoBehaviour
 
     private void ResetWallRunTimer()
     {
-        if (!TouchingWall && CheckIfTouchingWall() != 0)
+        if (!TouchingWallPrev && IsTouchingWall())
         {
             WallRunTimer = 0;
         }
@@ -450,9 +474,9 @@ public class PlayerController : MonoBehaviour
         {
             WallRunTimer = 10;
         }
-        if (DashTimer > 10)
+        if (PowerUseTimer > 10)
         {
-            DashTimer = 10;
+            PowerUseTimer = 10;
         }
 
     }
@@ -486,11 +510,11 @@ public class PlayerController : MonoBehaviour
     }
     private void CheckIfCameraShouldTilt()
     {
-        if (CheckIfTouchingWall() != 0 && !TiltAllowed)
+        if (TouchingWall && !TiltAllowed)
         {
             TiltAllowed = true;
         }
-        else if (TiltAllowed && CheckIfTouchingWall() == 0)
+        else if (TiltAllowed && !TouchingWall)
         {
             TiltAllowed = false;
         }
