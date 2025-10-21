@@ -105,7 +105,6 @@ public class PlayerController : MonoBehaviour
         Pause();
         if (!Paused)
         {
-            FindNearestEnemies();
             Dash();
             GravityConstantForce();
             ResetGame();
@@ -136,7 +135,6 @@ public class PlayerController : MonoBehaviour
             Lurch();
             TimerMaxes();
             CheckIfCameraShouldTilt();
-            Enemies = EnemiesParent.GetComponentsInChildren<Transform>();
         }
     }
 
