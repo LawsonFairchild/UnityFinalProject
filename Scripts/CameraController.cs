@@ -53,6 +53,10 @@ public class CameraController : MonoBehaviour
     private bool PrevToggle;
     public float CurrTilt;
     public float TiltSpeed;
+    public enum WeaponsEnum
+    {
+        Sword
+    }
 
     private void Start()
     {
@@ -163,7 +167,7 @@ public class CameraController : MonoBehaviour
             sensY = settings.sensY;
             YInverted = settings.YInverted;
             XYSynced = settings.XYSynced;
-
+            string weaponKey = settings.weaponKey;
             if (YInverted)
             {
                 sensY = -sensY;
@@ -179,6 +183,7 @@ public class CameraController : MonoBehaviour
             {
                 YSenseSlider.value = sensY;
             }
+            WeaponController.LoadFromWeaponKey(weaponKey);
 
         }
         else
@@ -238,4 +243,6 @@ public class PlayerSettings
     public float sensY;
     public bool YInverted;
     public bool XYSynced;
+
+    public string weaponKey;
 }

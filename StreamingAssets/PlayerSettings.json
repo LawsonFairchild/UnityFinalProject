@@ -2,5 +2,6 @@
     "sensX": 300.0,
     "sensY": 300.0,
     "YInverted": false,
-    "XYSynced": false
+    "XYSynced": false,
+    "WeaponKey":1
 }

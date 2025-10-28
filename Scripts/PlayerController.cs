@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.IO.Abstractions;
 using System.Linq;
+using Unity.Barracuda;
 using Unity.Mathematics;
 using Unity.MLAgents.SideChannels;
 using Unity.VisualScripting;
@@ -20,26 +22,14 @@ using UnityEngine.UI;
 /// </summary>
 public class PlayerController : MonoBehaviour
 {
-    /// <summary>
-    /// Container showing the orientation of the player.
-    /// </summary>
     public Transform Orientation;
-    /// <summary>
-    /// Layer detirming what objects are considered terrain.
-    /// </summary>
     public LayerMask WhatIsGround;
-    /// <summary>
-    /// Physic material showing what the player is made out of.
-    /// </summary>
+    public LayerMask WhatIsGoal;
     public PhysicMaterial PlayerMaterial;
-    /// <summary>
-    /// The gameobject that is the player
-    /// </summary>
-    public GameObject Player;
     public Camera PlayerCamera;
     private RaycastHit LastWallHit;
-    public static float PlayerHeight;
-    private float PlayerWidth;
+    public const float PlayerHeight = 1.2f;
+    private const float PlayerWidth = .8f;
     private float PlayerAccel;
     public float GroundedPlayerAccel;
     public float AirPlayerAccel;
@@ -67,8 +57,9 @@ public class PlayerController : MonoBehaviour
     private float WallRunTimer;
     private RaycastHit WallHit;
     public float WallHoldForce;
+    private bool HoldingWall;
     private RaycastHit ClosestHit;
-    public bool Paused;
+    private bool Paused;
     private RaycastHit UnRunableWall;
     public static bool TiltAllowed;
     public float GravityForce;
@@ -76,7 +67,6 @@ public class PlayerController : MonoBehaviour
     private float PowerUseTimer;
     public float PowerUseCooldown;
     public float PowerUseDuration;
-    public float autodashRange;
     public float DashMultiplier;
     private Vector3 DashDirection;
     private float VelocityTempVar;
@@ -84,13 +74,15 @@ public class PlayerController : MonoBehaviour
     private bool IsDashing;
     private int PowersLeft;
     public int NumActions;
+    public float WallRunDistance;
+    public float TimeBeforeLurchDiminish;
     public GameObject UIImage;
-    public GameObject EnemiesParent;
-    private Transform[] Enemies;
-    public Transform NearestEnemy;
-    public double NearestEnemyDist = 10000;
+    public float WallRunningDynamicFriction;
     private WallLocation DirectionTouchingWall;
     private bool TouchingWallPrev;
+    public Transform AttackRange;
+    private float TimeSinceLastAttack;
+    public float TimeBetweenAttacks;
     private enum WallLocation
     {
         NotTouching,
@@ -102,25 +94,23 @@ public class PlayerController : MonoBehaviour
     {
         PlayerRb = GetComponent<Rigidbody>();
         PlayerRb.freezeRotation = true;
-        PlayerHeight = 1.2f;
-        PlayerWidth = .8f;
         Paused = false;
         Physics.Raycast(Orientation.position, -Orientation.up, out LastWallHit, 10);
         Physics.Raycast(Orientation.position, -Orientation.up, out UnRunableWall, 10);
-        Enemies = EnemiesParent.GetComponentsInChildren<Transform>();
     }
 
     private void Update()
     {
-        Pause();
+        CheckPaused();
         if (!Paused)
         {
-            Dash();
-            GravityConstantForce();
-            ResetGame();
-            ResetWallRunTimer();
+            MoveMeleeAttackRange();
+            CheckLShiftPower();
+            ApplyGravityConstantForce();
+            CheckResetGame();
+            CheckResetForWallRunTimer();
             MovePlayer();
-            MyInput();
+            GetLookInput();
             if (!WasGroundedPrev && IsGrounded())
             {
                 PlayerRb.AddForce(PlayerRb.velocity.normalized * 1.1f);
@@ -138,31 +128,47 @@ public class PlayerController : MonoBehaviour
                 DirectionTouchingWall = CheckLocationOfWall();
                 PowersLeft = NumActions;
             }
-            WallSlide();
-            Jump();
-            DoubleJump();
-            WallJump();
+            CheckWallSlide();
+            CheckJump();
+            CheckDoubleJump();
+            CheckWallJump();
             DetirmineIfLurchAllowed();
-            Lurch();
-            TimerMaxes();
+            CheckLurch();
+            SetTimersToMaxes();
             CheckIfCameraShouldTilt();
+            CheckAttacks();
             WasGroundedPrev = Grounded;
             TouchingWallPrev = TouchingWall;
         }
     }
 
-    private void MyInput()
+    private void CheckAttacks()
+    {
+        if (Input.GetMouseButtonDown(0) && TimeSinceLastAttack > TimeBetweenAttacks)
+        {
+            WeaponController.Weapon.RightClickAttack();
+            TimeSinceLastAttack = 0;
+        }
+        else if (Input.GetMouseButtonDown(1) && TimeSinceLastAttack > TimeBetweenAttacks)
+        {
+            WeaponController.Weapon.LeftClickAttack();
+            TimeSinceLastAttack = 0;
+        }
+        TimeSinceLastAttack += Time.deltaTime;
+    }
+
+    private void GetLookInput()
     {
         HorizontalInput = Input.GetAxis("Horizontal");
         VerticalInput = Input.GetAxis("Vertical");
     }
 
-    private void WallSlide()
+    private void CheckWallSlide()
     {
-        if (TouchingWall && !Grounded && WallRunTimer < 3)
+        if (TouchingWall && !Grounded && WallRunTimer < WallRunDistance)
         {
             WallRunTimer += Time.deltaTime;
-            PlayerMaterial.dynamicFriction = .5f;
+            PlayerMaterial.dynamicFriction = WallRunningDynamicFriction;
             if (PlayerRb.velocity.y > 0)
             {
                 PlayerRb.velocity = new Vector3(PlayerRb.velocity.x, PlayerRb.velocity.y - WallDrag * Time.deltaTime, PlayerRb.velocity.z);
@@ -172,7 +178,10 @@ public class PlayerController : MonoBehaviour
                 PlayerRb.velocity = new Vector3(PlayerRb.velocity.x, -WallDrag, PlayerRb.velocity.z);
             }
             MaxSpeed = WallMaxSpeed;
-            PlayerRb.position = Vector3.MoveTowards(PlayerRb.position, WallHit.point, WallHoldForce * Time.deltaTime);
+            if (HoldingWall)
+            {
+                PlayerRb.position = Vector3.MoveTowards(PlayerRb.position, WallHit.point, WallHoldForce * Time.deltaTime);
+            }
         }
         else
         {
@@ -180,7 +189,7 @@ public class PlayerController : MonoBehaviour
             MaxSpeed = GroundMaxSpeed;
         }
     }
-    private void ResetGame()
+    private void CheckResetGame()
     {
         if (Input.GetKeyDown(KeyCode.R))
         {
@@ -189,11 +198,11 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    private void WallJump()
+    private void CheckWallJump()
     {
         if (Input.GetKeyDown(KeyCode.Space) && TouchingWall && !Grounded)
         {
-            WallHoldForce = 0f;
+            HoldingWall = false;
             Timer = 0;
             if (DirectionTouchingWall == WallLocation.Right)
             {
@@ -210,20 +219,9 @@ public class PlayerController : MonoBehaviour
         }
         else
         {
-            WallHoldForce = .2f;
-        }
-    }
-
-    private void FindNearestEnemies()
-    {
-        NearestEnemyDist = 10000;
-        for (int enemyIndex = 0; enemyIndex < Enemies.Length; enemyIndex++)
-        {
-            double distBetweenPlayerAndEnemy = Vector3.Distance(PlayerRb.transform.position, Enemies[enemyIndex].transform.position);
-            if (distBetweenPlayerAndEnemy < NearestEnemyDist)
+            if (!HoldingWall)
             {
-                NearestEnemy = Enemies[enemyIndex];
-                NearestEnemyDist = distBetweenPlayerAndEnemy;
+                HoldingWall = true;
             }
         }
     }
@@ -253,7 +251,7 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    private void Jump()
+    private void CheckJump()
     {
         if (Grounded && Input.GetKeyDown(KeyCode.Space))
         {
@@ -270,7 +268,7 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    private void DoubleJump()
+    private void CheckDoubleJump()
     {
         if (PowersLeft > 0 && Input.GetKeyDown(KeyCode.Space))
         {
@@ -285,7 +283,7 @@ public class PlayerController : MonoBehaviour
 
     private bool IsGrounded()
     {
-        return Physics.Raycast(transform.position, Vector3.down, PlayerHeight, WhatIsGround);
+        return Physics.Raycast(transform.position, Vector3.down, PlayerHeight, WhatIsGround) || Physics.Raycast(transform.position, Vector3.down, PlayerHeight, WhatIsGoal);
     }
 
     private bool IsTouchingWall()
@@ -387,7 +385,7 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    private void Lurch()
+    private void CheckLurch()
     {
         if (LurchAllowed)
         {
@@ -403,7 +401,7 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    private void Dash()
+    private void CheckLShiftPower()
     {
         if (PowersLeft > 0 && Input.GetKeyDown(KeyCode.LeftShift) && PowerUseTimer > PowerUseCooldown)
         {
@@ -413,6 +411,11 @@ public class PlayerController : MonoBehaviour
             PlayerRb.velocity = DashDirection * DashMultiplier;
             IsDashing = true;
             PowersLeft--;
+            if (TimeSinceLastAttack < TimeBetweenAttacks)
+            {
+                WeaponController.Weapon.LeftShiftAttack();
+                TimeSinceLastAttack = 0;
+            }
         }
         PowerUseTimer += Time.deltaTime;
         if (PowerUseTimer > PowerUseDuration && IsDashing)
@@ -423,15 +426,15 @@ public class PlayerController : MonoBehaviour
     }
 
 
-    private void ResetWallRunTimer()
+    private void CheckResetForWallRunTimer()
     {
         if (!TouchingWallPrev && IsTouchingWall())
         {
             WallRunTimer = 0;
         }
-        if (WallRunTimer > 3)
+        if (WallRunTimer > WallRunDistance)
         {
-            WallRunTimer = 3;
+            WallRunTimer = WallRunDistance;
         }
     }
 
@@ -454,7 +457,7 @@ public class PlayerController : MonoBehaviour
 
     private float DetirmineLurchForce()
     {
-        if (Timer < .2f)
+        if (Timer < TimeBeforeLurchDiminish)
         {
             return LurchForce;
         }
@@ -464,7 +467,7 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    private void TimerMaxes()
+    private void SetTimersToMaxes()
     {
         if (Timer > 10)
         {
@@ -478,9 +481,13 @@ public class PlayerController : MonoBehaviour
         {
             PowerUseTimer = 10;
         }
+        if (TimeSinceLastAttack > TimeBetweenAttacks)
+        {
+            TimeSinceLastAttack = TimeBetweenAttacks;
+        }
 
     }
-    void Pause()
+    void CheckPaused()
     {
         if (Input.GetKeyDown(KeyCode.Escape))
         {
@@ -501,7 +508,7 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    private void GravityConstantForce()
+    private void ApplyGravityConstantForce()
     {
         if (!Grounded)
         {
@@ -518,5 +525,10 @@ public class PlayerController : MonoBehaviour
         {
             TiltAllowed = false;
         }
+    }
+    
+    private void MoveMeleeAttackRange()
+    {
+        AttackRange.transform.position = Orientation.position + Orientation.forward * 2f;
     }
 }
