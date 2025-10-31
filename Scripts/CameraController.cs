@@ -1,8 +1,11 @@
 using UnityEngine;
 using UnityEngine.UI;
 using System.IO;
+using System.Text.Json;
 using Unity.VisualScripting;
 using Unity.Mathematics;
+using Palmmedia.ReportGenerator.Core.Common;
+using System;
 
 
 /// <summary>
@@ -53,10 +56,9 @@ public class CameraController : MonoBehaviour
     private bool PrevToggle;
     public float CurrTilt;
     public float TiltSpeed;
-    public enum WeaponsEnum
-    {
-        Sword
-    }
+    public string LocalWeaponKey;
+    public Button ShotgunButton;
+    public Button PistolButton;
 
     private void Start()
     {
@@ -68,7 +70,23 @@ public class CameraController : MonoBehaviour
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
 
+        SetButtonInteractivity();
+
         rectTransform.anchoredPosition = UnityEngine.Vector2.zero;
+    }
+
+    private void SetButtonInteractivity()
+    {
+        if (WeaponController.Weapon.GetWeaponKey() == "shotgun")
+        {
+            ShotgunButton.interactable = false;
+            PistolButton.interactable = true;
+        }
+        else if (WeaponController.Weapon.GetWeaponKey() == "pistol")
+        {
+            PistolButton.interactable = false;
+            ShotgunButton.interactable = true;
+        }
     }
 
     private void Update()
@@ -144,16 +162,20 @@ public class CameraController : MonoBehaviour
                 CurrTilt += Time.deltaTime * TiltSpeed;
             }
         }
-        else if (CurrTilt > 5) {
+        else if (CurrTilt > 5)
+        {
             CurrTilt -= Time.deltaTime * TiltSpeed;
         }
-        else if (CurrTilt < -5) {
+        else if (CurrTilt < -5)
+        {
             CurrTilt += Time.deltaTime * TiltSpeed;
         }
-        else {
+        else
+        {
             CurrTilt = 0;
         }
-        cam.transform.localRotation = UnityEngine.Quaternion.Euler(cam.transform.localRotation.eulerAngles.x, cam.transform.localRotation.eulerAngles.y, CurrTilt);    }
+        cam.transform.localRotation = UnityEngine.Quaternion.Euler(cam.transform.localRotation.eulerAngles.x, cam.transform.localRotation.eulerAngles.y, CurrTilt);
+    }
 
 
     private void LoadSettings()
@@ -167,7 +189,7 @@ public class CameraController : MonoBehaviour
             sensY = settings.sensY;
             YInverted = settings.YInverted;
             XYSynced = settings.XYSynced;
-            string weaponKey = settings.weaponKey;
+            LocalWeaponKey = settings.WeaponKey;
             if (YInverted)
             {
                 sensY = -sensY;
@@ -183,8 +205,7 @@ public class CameraController : MonoBehaviour
             {
                 YSenseSlider.value = sensY;
             }
-            WeaponController.LoadFromWeaponKey(weaponKey);
-
+            WeaponController.LoadFromWeaponKey(LocalWeaponKey);
         }
         else
         {
@@ -195,11 +216,13 @@ public class CameraController : MonoBehaviour
     private void SaveSettings()
     {
         string FilePath = Path.Combine(Application.streamingAssetsPath, "PlayerSettings.json");
+        LocalWeaponKey = WeaponController.Weapon.GetWeaponKey();
         PlayerSettings Settings = new()
         {
             sensX = XSenseSlider.value,
             sensY = YSenseSlider.value,
-            YInverted = YInvertToggle.isOn
+            YInverted = YInvertToggle.isOn,
+            WeaponKey = LocalWeaponKey
         };
 
         string SettingsString = JsonUtility.ToJson(Settings, true);
@@ -243,6 +266,5 @@ public class PlayerSettings
     public float sensY;
     public bool YInverted;
     public bool XYSynced;
-
-    public string weaponKey;
+    public string WeaponKey;
 }

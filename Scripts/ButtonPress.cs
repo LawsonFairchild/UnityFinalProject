@@ -5,10 +5,27 @@ using UnityEngine.UI;
 public class ButtonPress : MonoBehaviour
 {
     public Button ButtonSelf;
-    void Start() {
+    public Button ShotgunButton;
+    public Button PistolButton;
+    void Start()
+    {
         ButtonSelf.onClick.AddListener(OnClick);
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
+    }
+
+    private void SetButtonInteractivity()
+    {
+        if (WeaponController.Weapon.GetWeaponKey() == "shotgun")
+        {
+            ShotgunButton.interactable = false;
+            PistolButton.interactable = true;
+        }
+        else if (WeaponController.Weapon.GetWeaponKey() == "pistol")
+        {
+            PistolButton.interactable = false;
+            ShotgunButton.interactable = true;
+        }
     }
     public void OnClick()
     {
@@ -25,7 +42,16 @@ public class ButtonPress : MonoBehaviour
             }
         }
         else if (ButtonSelf.gameObject.CompareTag("SettingsButton")) {
-
+            if (ButtonSelf.gameObject.name == "ShotgunButton")
+            {
+                WeaponController.LoadFromWeaponKey("shotgun");
+                SetButtonInteractivity();
+            }
+            else if (ButtonSelf.gameObject.name == "PistolButton")
+            {
+                WeaponController.LoadFromWeaponKey("pistol");
+                SetButtonInteractivity();
+            }
         }
     }
 }

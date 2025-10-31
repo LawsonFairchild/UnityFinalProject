@@ -80,8 +80,8 @@ public class PlayerController : MonoBehaviour
     public float WallRunningDynamicFriction;
     private WallLocation DirectionTouchingWall;
     private bool TouchingWallPrev;
-    public Transform AttackRange;
-    private float TimeSinceLastAttack;
+    public GameObject AttackRange;
+    public float TimeSinceLastAttack;
     public float TimeBetweenAttacks;
     private enum WallLocation
     {
@@ -97,6 +97,7 @@ public class PlayerController : MonoBehaviour
         Paused = false;
         Physics.Raycast(Orientation.position, -Orientation.up, out LastWallHit, 10);
         Physics.Raycast(Orientation.position, -Orientation.up, out UnRunableWall, 10);
+        WeaponController.MeleeAttackRange = AttackRange;
     }
 
     private void Update()
@@ -144,17 +145,17 @@ public class PlayerController : MonoBehaviour
 
     private void CheckAttacks()
     {
-        if (Input.GetMouseButtonDown(0) && TimeSinceLastAttack > TimeBetweenAttacks)
+        TimeSinceLastAttack += Time.deltaTime;
+        if (Input.GetMouseButtonDown(1) && TimeSinceLastAttack >= TimeBetweenAttacks)
         {
             WeaponController.Weapon.RightClickAttack();
             TimeSinceLastAttack = 0;
         }
-        else if (Input.GetMouseButtonDown(1) && TimeSinceLastAttack > TimeBetweenAttacks)
+        else if (Input.GetMouseButtonDown(0) && TimeSinceLastAttack >= TimeBetweenAttacks)
         {
-            WeaponController.Weapon.LeftClickAttack();
+            WeaponController.Weapon.LeftClickAttack(PlayerCamera.transform);
             TimeSinceLastAttack = 0;
         }
-        TimeSinceLastAttack += Time.deltaTime;
     }
 
     private void GetLookInput()
